@@ -1,6 +1,6 @@
 // Compile: javac -cp .;mysql-connector-j-9.3.0.jar bhojan.java
 // Run:     java -cp .;mysql-connector-j-9.3.0.jar bhojan
-
+import java.io.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
 import javax.swing.*;
@@ -30,89 +30,87 @@ Set<String> selectedCategories = new HashSet<>();
     JPanel paginationPanel;
 
     public bhojan() {
-        try {
-            setTitle("BHOJAN");
-            setDefaultCloseOperation(EXIT_ON_CLOSE);
-	    setMinimumSize(new Dimension(1024, 720));
-            setExtendedState(MAXIMIZED_BOTH);
-	    setIconImage(new ImageIcon("img/icon.png").getImage());
-            setVisible(true);
+    try {
+        setTitle("BHOJAN");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setMinimumSize(new Dimension(1024, 720));
+        setExtendedState(MAXIMIZED_BOTH);
+        setIconImage(new ImageIcon("img/icon.png").getImage());
+        setVisible(true);
 
-            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/food", "root", "hk117");
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM recipes");
-            while (rs.next()) allRecipes.add(new Recipe(rs));
-            rs.close(); stmt.close(); conn.close();
+        // Load Recipes before Filters
+        loadRecipes();
 
-            fp = new JPanel();
-            fp.setLayout(new BoxLayout(fp, BoxLayout.Y_AXIS));
-            fp.setBackground(new Color(245, 228, 195));
-            fp.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
+        fp = new JPanel();
+        fp.setLayout(new BoxLayout(fp, BoxLayout.Y_AXIS));
+        fp.setBackground(new Color(245, 228, 195));
+        fp.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
 
-            JScrollPane filterScrollPane = new JScrollPane(fp);
-            filterScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-            filterScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        JScrollPane filterScrollPane = new JScrollPane(fp);
+        filterScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        filterScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-            addFilterSection("Type", List.of("Veg", "Non-Veg"), selectedTypes);
-            addFilterSection("Region", extractUnique("region"), selectedRegions);
-addFilterSection("Category", extractUnique("category"), selectedCategories);
-            addFilterSection("Ingredients", extractUniqueIngredients(), selectedIngredients);
-            //addFilterSection("Avg Cost", List.of("<10", "0-60", ">60"), selectedCostRanges);
-            addFilterSection("Time (min)", List.of("<10", "0-60", ">60"), selectedTimeRanges);
+        // Build Filters after loading recipes
+        addFilterSection("Type", List.of("Veg", "Non-Veg"), selectedTypes);
+        addFilterSection("Region", extractUnique("region"), selectedRegions);
+        addFilterSection("Category", extractUnique("category"), selectedCategories);
+        addFilterSection("Ingredients", extractUniqueIngredients(), selectedIngredients);
+        addFilterSection("Time (min)", List.of("<10", "0-60", ">60"), selectedTimeRanges);
 
-            JPanel sp = new JPanel();
-            sp.setLayout(new BoxLayout(sp, BoxLayout.Y_AXIS));
-            sp.setBackground(new Color(255, 111, 97));
-            JLabel title = new JLabel("BHOJAN");
-            title.setFont(new Font("Serif", Font.BOLD, 80));
-            title.setForeground(new Color(80, 20, 0));
-            title.setAlignmentX(Component.CENTER_ALIGNMENT);
-            sp.add(title);
+        // Search Bar Section
+        JPanel sp = new JPanel();
+        sp.setLayout(new BoxLayout(sp, BoxLayout.Y_AXIS));
+        sp.setBackground(new Color(255, 111, 97));
+        JLabel title = new JLabel("BHOJAN");
+        title.setFont(new Font("Serif", Font.BOLD, 80));
+        title.setForeground(new Color(80, 20, 0));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sp.add(title);
 
-            JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-            searchRow.setBackground(Color.WHITE);
-            JLabel searchLabel = new JLabel("Search:");
-            searchLabel.setFont(new Font("Serif", Font.PLAIN, 30));
-            searchField = new JTextField(30);
-            searchField.setFont(new Font("Serif", Font.PLAIN, 24));
-            searchRow.add(searchLabel);
-            searchRow.add(searchField);
-            sp.add(searchRow);
+        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        searchRow.setBackground(Color.WHITE);
+        JLabel searchLabel = new JLabel("Search:");
+        searchLabel.setFont(new Font("Serif", Font.PLAIN, 30));
+        searchField = new JTextField(30);
+        searchField.setFont(new Font("Serif", Font.PLAIN, 24));
+        searchRow.add(searchLabel);
+        searchRow.add(searchField);
+        sp.add(searchRow);
 
-            cp = new JPanel();
-            cp.setLayout(new BoxLayout(cp, BoxLayout.Y_AXIS));
-            cp.setBackground(Color.WHITE);
-            scrollPane = new JScrollPane(cp);
-            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-            scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-            scrollPane.setBorder(null);
+        // Recipe Cards Panel
+        cp = new JPanel();
+        cp.setLayout(new BoxLayout(cp, BoxLayout.Y_AXIS));
+        cp.setBackground(Color.WHITE);
+        scrollPane = new JScrollPane(cp);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setBorder(null);
 
-            rp = new JPanel(new BorderLayout());
-            rp.add(sp, BorderLayout.NORTH);
-            rp.add(scrollPane, BorderLayout.CENTER);
-            paginationPanel = new JPanel();
-            paginationPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-            rp.add(paginationPanel, BorderLayout.SOUTH);
-	    SwingUtilities.invokeLater(() -> scrollPane.getVerticalScrollBar().setValue(0));
+        rp = new JPanel(new BorderLayout());
+        rp.add(sp, BorderLayout.NORTH);
+        rp.add(scrollPane, BorderLayout.CENTER);
+        paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        rp.add(paginationPanel, BorderLayout.SOUTH);
+        SwingUtilities.invokeLater(() -> scrollPane.getVerticalScrollBar().setValue(0));
 
-            splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, filterScrollPane, rp);
-            splitPane.setDividerLocation(350);
-            splitPane.setDividerSize(1);
-            add(splitPane);
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, filterScrollPane, rp);
+        splitPane.setDividerLocation(350);
+        splitPane.setDividerSize(1);
+        add(splitPane);
 
-            searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-                public void insertUpdate(javax.swing.event.DocumentEvent e) { refreshCards(); }
-                public void removeUpdate(javax.swing.event.DocumentEvent e) { refreshCards(); }
-                public void changedUpdate(javax.swing.event.DocumentEvent e) { refreshCards(); }
-            });
-	    loadRecipes();
-            refreshCards();
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { refreshCards(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { refreshCards(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { refreshCards(); }
+        });
 
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
-        }
+        refreshCards();
+
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(null, "Error: " + e.getMessage());
     }
+}
 
 void addFilterSection(String title, List<String> items, Set<String> selectedSet) {
     JPanel section = new JPanel(new BorderLayout());
@@ -187,7 +185,7 @@ void addFilterSection(String title, List<String> items, Set<String> selectedSet)
                 .filter(r -> selectedRegions.isEmpty() || selectedRegions.contains(r.region))
 .filter(r -> selectedCategories.isEmpty() || selectedCategories.contains(r.category))
 		.filter(r -> selectedIngredients.isEmpty() || 
-		    Arrays.stream(r.ingredients.split(","))
+		    Arrays.stream(r.ingredients.split(":"))
 		          .map(String::trim)
 		          .map(String::toLowerCase)
 		          .anyMatch(i -> selectedIngredients.stream()
@@ -289,19 +287,21 @@ private JButton createPageButton(int pageNumber) {
     });
     return btn;
 }
-    void loadRecipes() {
-        try {
-	    allRecipes.clear(); 
-            Connection con = DriverManager.getConnection("jdbc:mysql://localhost:3306/food", "root", "hk117");
-            Statement stmt = con.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM recipes");
-            while (rs.next()) {
-                allRecipes.add(new Recipe(rs));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+void loadRecipes() {
+    allRecipes.clear(); 
+    try (BufferedReader br = new BufferedReader(new FileReader("data/d.csv"))) {
+        String line;
+        br.readLine(); // Skip header line
+        while ((line = br.readLine()) != null) {
+            String[] parts = line.split("\\|");
+            if (parts.length < 12) continue; // Skip invalid lines
+            allRecipes.add(new Recipe(parts));
         }
+    } catch (IOException e) {
+        e.printStackTrace();
     }
+}
+
 
 List<String> extractUnique(String field) {
     return allRecipes.stream()
@@ -318,13 +318,13 @@ List<String> extractUnique(String field) {
 
 List<String> extractUniqueIngredients() {
     return allRecipes.stream()
-            .flatMap(r -> Arrays.stream(r.ingredients.split(",")))
+            .flatMap(r -> Arrays.stream(r.ingredients.split(":")))  // Changed to comma
             .map(String::trim)
-            .map(s -> s.toLowerCase())
+            .map(String::toLowerCase)
             .filter(s -> !s.isBlank())
             .distinct()
             .sorted()
-            .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1)) // Capitalize first letter
+            .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1))
             .collect(Collectors.toList());
 }
 
@@ -336,20 +336,19 @@ List<String> extractUniqueIngredients() {
     class Recipe {
         String name, type, region, ingredients, steps, image, quantity, recipe_by, category;
         int avgCost, timeNeeded;
-
-        Recipe(ResultSet r) throws SQLException {
-            name = r.getString("name");
-            type = r.getString("type");
-            region = r.getString("region");
-            ingredients = r.getString("ingredients");
-            steps = r.getString("steps");
-            avgCost = r.getInt("avg_cost");
-            timeNeeded = r.getInt("time_needed");
-            image = r.getString("image");
-            quantity = r.getString("quantity");
-            recipe_by = r.getString("recipe_by");
-            category = r.getString("category");
-        }
+Recipe(String[] parts) {
+    name = parts[1];
+    type = parts[2];
+    region = parts[3];
+    ingredients = parts[4];
+    quantity = parts[5];
+    avgCost = Integer.parseInt(parts[6]);
+    timeNeeded = Integer.parseInt(parts[7]);
+    steps = parts[8];
+    recipe_by = parts[9];
+    image = parts[10];
+    category = parts[11];
+}
 
         JPanel createCard() {
             JPanel card = new JPanel(new BorderLayout());

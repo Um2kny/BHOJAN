@@ -1,2 +1,1 @@
 Main-Class: bhojan
-Class-Path: mysql-connector-j-9.3.0.jar

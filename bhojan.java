@@ -35,7 +35,10 @@ Set<String> selectedCategories = new HashSet<>();
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1024, 720));
         setExtendedState(MAXIMIZED_BOTH);
-        setIconImage(new ImageIcon("img/icon.png").getImage());
+ImageIcon icon = new ImageIcon(getClass().getResource("/img/icon.png"));
+setIconImage(icon.getImage());
+
+
         setVisible(true);
 
         // Load Recipes before Filters
@@ -289,7 +292,8 @@ private JButton createPageButton(int pageNumber) {
 }
 void loadRecipes() {
     allRecipes.clear(); 
-    try (BufferedReader br = new BufferedReader(new FileReader("data/d.csv"))) {
+    try (InputStream in = getClass().getResourceAsStream("/data/d.csv");
+     BufferedReader br = new BufferedReader(new InputStreamReader(in)))  {
         String line;
         br.readLine(); // Skip header line
         while ((line = br.readLine()) != null) {
@@ -382,7 +386,9 @@ Recipe(String[] parts) {
             centerPanel.add(ingArea, BorderLayout.SOUTH);
 
             JLabel imageLabel = new JLabel();
-            ImageIcon icon = new ImageIcon("img/" + image);
+
+	    ImageIcon icon = new ImageIcon(getClass().getResource("/img/" + image));
+
             Image img = icon.getImage().getScaledInstance(220, 220, Image.SCALE_SMOOTH);
             imageLabel.setIcon(new ImageIcon(img));
 
